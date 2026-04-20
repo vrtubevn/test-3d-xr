@@ -1,0 +1,102 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body, html, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #0d0d0d;
+  font-family: sans-serif;
+}
+
+.app {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+}
+
+.viewer {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.canvas canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.sidebar {
+  flex: 0 0 20%;
+  width: 20%;
+  min-width: 160px;
+  max-width: 260px;
+  height: 100vh;
+  border-left: 1px solid #333;
+  background: #111;
+  padding: 20px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.sidebar h3 {
+  color: white;
+  margin-bottom: 16px;
+}
+
+.sidebar h4 {
+  color: #aaa;
+  margin-bottom: 8px;
+}
+
+.sidebar hr {
+  border-color: #333;
+  margin: 12px 0;
+}
+
+.sidebar button {
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 10px;
+  background: #222;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.sidebar button:hover {
+  background: #444;
+}
+
+.sidebar button.active {
+  background: #4CAF50;
+  color: white;
+}
+
+.sidebar input[type="range"] {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.vr-btn {
+  margin-top: 20px;
+  background: #007bff !important;
+}
+
+.vr-btn:hover {
+  background: #0056b3 !important;
+}
