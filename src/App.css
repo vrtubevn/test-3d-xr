@@ -100,3 +100,34 @@ body, html, #root {
 .vr-btn:hover {
   background: #0056b3 !important;
 }
+
+.speech-btn {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 22px;
+  background: rgba(0, 200, 255, 0.15);
+  border: 2px solid #00c8ff;
+  color: #00c8ff;
+  border-radius: 8px;
+  font-size: 15px;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition: all 0.2s;
+  z-index: 100;        /* ← cao hơn canvas để không bị che */
+  pointer-events: auto;
+  white-space: nowrap;
+}
+
+.speech-btn:hover:not(:disabled) {
+  background: rgba(0, 200, 255, 0.3);
+}
+
+.speech-btn.playing,
+.speech-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  border-color: #aaa;
+  color: #aaa;
+}

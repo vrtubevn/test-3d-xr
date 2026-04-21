@@ -22,13 +22,13 @@ const ENV_CONFIG = {
     modelPos:     { x: 0,   y: 0,   z:  0  },
     modelRotY:    0,
   },
- room1: {
+  room1: {
     envScale:     35,
-    centerOffset: { x: -15, z: 0 }, // khoảng cách camera với model
-    cameraPos:    { x: -13, y: -2.5, z:  0 },  // vị trí của camrera
-    cameraTarget: { x: -25, y: -5, z: 0 }, // hướng của camrera
-    modelPos:     { x: -35, y: -4.25, z: 0 }, // vị trí của model
-    modelRotY:    14.2                         // model quay mặt về phía camera       
+    centerOffset: { x: -15, z: 0 },
+    cameraPos:    { x: -13, y: -2.5, z:  0 },
+    cameraTarget: { x: -25, y: -5, z: 0 },
+    modelPos:     { x: -35, y: -4.25, z: 0 },
+    modelRotY:    14.2
   },
 }
 
@@ -37,6 +37,34 @@ function App() {
   const [activeModel, setActiveModel] = useState('default')
   const [activeEnv, setActiveEnv]     = useState('room1')
   const [envScaleUI, setEnvScaleUI]   = useState(45)
+  const [isPlaying, setIsPlaying]     = useState(false)
+
+  // ================= SPEECH SEQUENCE =================
+  const playSpeechSequence = async () => {
+    if (isPlaying) return
+    setIsPlaying(true)
+
+    const playAudio = (src) =>
+      new Promise((resolve) => {
+        const audio = new Audio(src)
+        audio.onended = resolve
+        audio.onerror = resolve
+        audio.play().catch(resolve)
+      })
+
+    const wait = (ms) => new Promise((res) => setTimeout(res, ms))
+
+    try {
+      await playAudio('/speeches/speech 1.mp3')
+      await wait(2000)
+      await playAudio('/speeches/speech 2.mp3')
+      await wait(1000)
+      await playAudio('/speeches/speech 3.mp3')
+      await playAudio('/speeches/speech 4.mp3')
+    } finally {
+      setIsPlaying(false)
+    }
+  }
 
   useEffect(() => {
     const scene = new THREE.Scene()
@@ -84,13 +112,11 @@ function App() {
     let envZoom       = 45
     let lastEnvPath   = '/env/room1.glb'
 
-    // Lưu cfg hiện tại để dùng khi enter VR
     let activeCfg = ENV_CONFIG['room1']
 
     const loader = new GLTFLoader()
     const clock  = new THREE.Clock()
 
-    // ================= MODEL =================
     function loadModel(path) {
       loader.load(path, (gltf) => {
         if (currentModel) scene.remove(currentModel)
@@ -113,11 +139,8 @@ function App() {
       })
     }
 
-    // ================= ENV =================
     function applyEnvConfig(cfg) {
       activeCfg = cfg
-
-      // Reset playerRig, đặt camera đúng vị trí web
       playerRig.position.set(0, 0, 0)
       camera.position.set(cfg.cameraPos.x, cfg.cameraPos.y, cfg.cameraPos.z)
       controls.target.set(cfg.cameraTarget.x, cfg.cameraTarget.y, cfg.cameraTarget.z)
@@ -178,11 +201,7 @@ function App() {
       if (environment) loadEnvironment(lastEnvPath, currentEnvKey)
     }
 
-    // ================= ALIGN PLAYERRIG KHI VÀO VR =================
-    // Khi WebXR bắt đầu, XR camera có vị trí riêng dựa trên headset tracking.
-    // Ta dịch chuyển playerRig để XR camera khớp với vị trí camera web.
     renderer.xr.addEventListener('sessionstart', () => {
-      // Cần đợi 1 frame để XR camera có matrixWorld chính xác
       setTimeout(() => {
         const cfg    = activeCfg
         const xrCam  = renderer.xr.getCamera()
@@ -191,19 +210,12 @@ function App() {
         const xrWorldPos = new THREE.Vector3()
         xrWorldPos.setFromMatrixPosition(xrCam.matrixWorld)
 
-        // Vị trí camera mong muốn trong world space
-        const desiredX = cfg.cameraPos.x
-        const desiredY = cfg.cameraPos.y
-        const desiredZ = cfg.cameraPos.z
-
-        // Dịch playerRig để bù đắp sự lệch giữa XR camera và vị trí mong muốn
-        playerRig.position.x += desiredX - xrWorldPos.x
-        playerRig.position.y += desiredY - xrWorldPos.y
-        playerRig.position.z += desiredZ - xrWorldPos.z
+        playerRig.position.x += cfg.cameraPos.x - xrWorldPos.x
+        playerRig.position.y += cfg.cameraPos.y - xrWorldPos.y
+        playerRig.position.z += cfg.cameraPos.z - xrWorldPos.z
       }, 100)
     })
 
-    // Reset playerRig khi thoát VR
     renderer.xr.addEventListener('sessionend', () => {
       playerRig.position.set(0, 0, 0)
       const cfg = activeCfg
@@ -212,7 +224,6 @@ function App() {
       controls.update()
     })
 
-    // ================= CONTROLLERS =================
     const factory = new XRControllerModelFactory()
 
     const controller0 = renderer.xr.getController(0)
@@ -238,7 +249,6 @@ function App() {
     const raycaster  = new THREE.Raycaster()
     const tempMatrix = new THREE.Matrix4()
 
-    // ================= TELEPORT =================
     function teleportFromController(ctrl) {
       tempMatrix.identity().extractRotation(ctrl.matrixWorld)
       raycaster.ray.origin.setFromMatrixPosition(ctrl.matrixWorld)
@@ -259,14 +269,12 @@ function App() {
       }
     }
 
-    // ================= GAMEPAD POLLING =================
     const prevButtonState = { 0: [], 1: [] }
 
     function wasJustPressed(curr, prev, btnIndex) {
       return !!(curr[btnIndex]?.pressed && !prev[btnIndex]?.pressed)
     }
 
-    // ================= XR MOVEMENT =================
     function handleXRMovement(delta) {
       const session = renderer.xr.getSession()
       if (!session) return
@@ -316,7 +324,6 @@ function App() {
       })
     }
 
-    // ================= ENTER VR =================
     window.enterVR = async () => {
       if (!navigator.xr) {
         alert('WebXR không được hỗ trợ trên trình duyệt này')
@@ -333,7 +340,6 @@ function App() {
       }
     }
 
-    // ================= RESIZE =================
     function resize() {
       const rect = container.getBoundingClientRect()
       const w = Math.floor(rect.width)
@@ -344,7 +350,6 @@ function App() {
       camera.updateProjectionMatrix()
     }
 
-    // ================= LOOP =================
     renderer.setAnimationLoop(() => {
       const delta = clock.getDelta()
       if (mixer) mixer.update(delta)
@@ -358,7 +363,6 @@ function App() {
       renderer.render(scene, camera)
     })
 
-    // ================= INIT =================
     loadModel('/models/avatar.glb')
     loadEnvironment('/env/room1.glb', 'room1')
 
@@ -389,39 +393,43 @@ function App() {
     <div className="app">
       <div className="viewer">
         <div ref={mountRef} className="canvas"></div>
+
+        {/* ===== SPEECH BUTTON (đặt cạnh model) ===== */}
+        <button
+          className={`speech-btn ${isPlaying ? 'playing' : ''}`}
+          onClick={playSpeechSequence}
+          disabled={isPlaying}
+        >
+          {isPlaying ? '🔊 Đang phát...' : '🔊 Phát lời thoại'}
+        </button>
       </div>
 
       <div className="sidebar">
         <h3>Models:</h3>
-
         <button
           className={activeModel === 'default' ? 'active' : ''}
           onClick={() => window.loadAvatar('/models/avatar.glb', 'default')}
         >
           Mặc định
         </button>
-
         <button
           className={activeModel === 'a1' ? 'active' : ''}
           onClick={() => window.loadAvatar('/models/avatar1.glb', 'a1')}
         >
           Người đàn ông đang đợi
         </button>
-
         <button
           className={activeModel === 'a2' ? 'active' : ''}
           onClick={() => window.loadAvatar('/models/avatar2.glb', 'a2')}
         >
           Cô gái đang chụp ảnh
         </button>
-
         <button
           className={activeModel === 'a3' ? 'active' : ''}
           onClick={() => window.loadAvatar('/models/avatar3.glb', 'a3')}
         >
           Bé gái đứng 1 mình
         </button>
-
         <button
           className={activeModel === 'a4' ? 'active' : ''}
           onClick={() => window.loadAvatar('/models/avatar4.glb', 'a4')}
@@ -432,21 +440,18 @@ function App() {
         <hr />
 
         <h3>Backgrounds:</h3>
-
         <button
           className={activeEnv === 'room1' ? 'active' : ''}
           onClick={() => window.loadEnv('/env/room1.glb', 'room1')}
         >
           Trong nhà
         </button>
-
         <button
           className={activeEnv === 'room2' ? 'active' : ''}
           onClick={() => window.loadEnv('/env/room2.glb', 'room2')}
         >
           Núi đá
         </button>
-
         <button
           className={activeEnv === 'room3' ? 'active' : ''}
           onClick={() => window.loadEnv('/env/room3.glb', 'room3')}
